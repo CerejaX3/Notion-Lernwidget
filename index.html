@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tägliche Jura-To-dos</title>
+  <style>
+    :root {
+      --bg: #fbf6e9;
+      --card: #fffdf7;
+      --text: #2f2a24;
+      --muted: #7d746a;
+      --border: #e7dcc9;
+      --accent: #b88a5a;
+      --done: #8f9f7b;
+      --shadow: rgba(72, 56, 38, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+    }
+
+    .widget {
+      width: min(520px, 96vw);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 10px 30px var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 17px;
+    }
+
+    .title {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reset-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      padding: 0;
+      font-size: 21px;
+      line-height: 1;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .reset-btn:hover {
+      transform: rotate(-18deg);
+      background: #fffaf0;
+    }
+
+    .streak {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: -8px;
+      margin-bottom: 18px;
+    }
+
+    .list {
+      display: grid;
+      gap: 11px;
+    }
+
+    .task {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 14px;
+      padding: 15px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font: inherit;
+      font-size: 16px;
+      transition: transform 160ms ease, opacity 240ms ease, background 160ms ease;
+    }
+
+    .task:hover {
+      transform: translateY(-1px);
+    }
+
+    .check {
+      width: 23px;
+      height: 23px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      color: white;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .task.done {
+      background: #f2f3ed;
+      border-color: #d8dfcf;
+      opacity: 0;
+      transform: translateX(18px) scale(0.98);
+      pointer-events: none;
+    }
+
+    .task.done .check {
+      background: var(--done);
+      border-color: var(--done);
+    }
+
+    .empty {
+      display: none;
+      text-align: center;
+      padding: 19px 8px 7px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .empty.show { display: block; }
+
+    .reset-note {
+      margin-top: 15px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 12px;
+      border-radius: 2px;
+      pointer-events: none;
+      animation: fall 900ms ease-out forwards;
+      z-index: 50;
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(0.8);
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .task, .confetti { animation: none !important; transition: none !important; }
+      .reset-btn:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <section class="widget">
+    <div class="header">
+      <div class="title">Tägliche Lernroutine</div>
+      <div class="header-actions">
+        <button
+          class="reset-btn"
+          id="resetBtn"
+          type="button"
+          title="Aufgaben für heute zurücksetzen"
+          aria-label="Aufgaben für heute zurücksetzen"
+        >↶</button>
+        <div class="streak" id="streak">🔥 0 Tage</div>
+      </div>
+    </div>
+
+        <div class="list" id="taskList"></div>
+
+    <div class="empty" id="emptyState">
+      Alles für heute erledigt. Sehr schön. 🎉
+    </div>
+
+    <div class="reset-note">
+      Die drei Aufgaben erscheinen jeden neuen Tag automatisch wieder.
+    </div>
+  </section>
+
+  <script>
+    const TASKS = [
+      "Spaced Repetition",
+      "Karteikarten / Jura Fuchs",
+      "Neuen Stoff erarbeiten"
+    ];
+
+    const STORAGE_KEY = "anna-examen-daily-todos-v1";
+
+    function localDateKey(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function previousDateKey(dateKey) {
+      const [y, m, d] = dateKey.split("-").map(Number);
+      const date = new Date(y, m - 1, d);
+      date.setDate(date.getDate() - 1);
+      return localDateKey(date);
+    }
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function normalizeState() {
+      const today = localDateKey();
+      const state = loadState();
+
+      if (!state.days) state.days = {};
+      if (!state.days[today]) state.days[today] = { completed: [] };
+      if (typeof state.streak !== "number") state.streak = 0;
+      if (!("lastCompletedDay" in state)) state.lastCompletedDay = null;
+
+      saveState(state);
+      return state;
+    }
+
+    function updateStreakIfDayCompleted(state, today) {
+      const completed = state.days[today]?.completed || [];
+      if (completed.length !== TASKS.length) return state;
+      if (state.lastCompletedDay === today) return state;
+
+      const yesterday = previousDateKey(today);
+
+      if (state.lastCompletedDay === yesterday) {
+        state.streak += 1;
+      } else {
+        state.streak = 1;
+      }
+
+      state.lastCompletedDay = today;
+      saveState(state);
+      return state;
+    }
+
+    function render() {
+      const today = localDateKey();
+      let state = normalizeState();
+      state = updateStreakIfDayCompleted(state, today);
+
+      const list = document.getElementById("taskList");
+      const empty = document.getElementById("emptyState");
+      const streak = document.getElementById("streak");
+      list.innerHTML = "";
+
+      const completed = state.days[today]?.completed || [];
+      const remaining = TASKS.filter(task => !completed.includes(task));
+
+      remaining.forEach(taskName => {
+        const btn = document.createElement("button");
+        btn.className = "task";
+        btn.type = "button";
+        btn.innerHTML = `
+          <span class="check">✓</span>
+          <span>${taskName}</span>
+        `;
+
+        btn.addEventListener("click", (event) => completeTask(taskName, btn, event));
+        list.appendChild(btn);
+      });
+
+      empty.classList.toggle("show", remaining.length === 0);
+      streak.textContent = `🔥 ${state.streak} ${state.streak === 1 ? "Tag" : "Tage"}`;
+    }
+
+    function completeTask(taskName, element, event) {
+      const today = localDateKey();
+      const state = normalizeState();
+      const completed = state.days[today].completed;
+
+      if (!completed.includes(taskName)) {
+        completed.push(taskName);
+        saveState(state);
+      }
+
+      burstConfetti(event.clientX, event.clientY);
+      element.classList.add("done");
+
+      setTimeout(render, 260);
+    }
+
+    function resetToday() {
+      const today = localDateKey();
+      const state = normalizeState();
+
+      // Nur die heutigen Häkchen werden gelöscht.
+      // Der bereits verdiente Streak wird dabei nicht zurückgesetzt.
+      state.days[today] = { completed: [] };
+      saveState(state);
+      render();
+    }
+
+    function burstConfetti(x, y) {
+      const colors = ["#b88a5a", "#d8b36a", "#8f9f7b", "#d99b8f", "#9a8fb3", "#c8a27a"];
+      const widget = document.querySelector(".widget");
+      const rect = widget.getBoundingClientRect();
+
+      const originX = x ? x - rect.left : rect.width / 2;
+      const originY = y ? y - rect.top : rect.height / 2;
+
+      for (let i = 0; i < 34; i++) {
+        const piece = document.createElement("span");
+        piece.className = "confetti";
+        piece.style.left = `${originX}px`;
+        piece.style.top = `${originY}px`;
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 60 + Math.random() * 120;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance + 60;
+        const rotation = `${Math.floor(Math.random() * 720 - 360)}deg`;
+
+        piece.style.setProperty("--x", `${dx}px`);
+        piece.style.setProperty("--y", `${dy}px`);
+        piece.style.setProperty("--r", rotation);
+
+        widget.appendChild(piece);
+        setTimeout(() => piece.remove(), 1000);
+      }
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", resetToday);
+
+    render();
+
+    let lastSeenDay = localDateKey();
+    setInterval(() => {
+      const now = localDateKey();
+      if (now !== lastSeenDay) {
+        lastSeenDay = now;
+        render();
+      }
+    }, 60000);
+  </script>
+</body>
+</html>
