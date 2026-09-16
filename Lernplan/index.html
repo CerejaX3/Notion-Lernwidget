@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lernplan</title>
+<style>
+:root{
+  --bg:#f4ecd9;
+  --panel:#fffaf0;
+  --panel-2:#fffdf8;
+  --brown:#6f553f;
+  --brown-dark:#4d392a;
+  --brown-soft:#9b7b61;
+  --line:#dbc9ae;
+  --muted:#8f7e6d;
+  --shadow:0 10px 28px rgba(92,65,44,.12);
+
+  --civil:#a8cf9d;
+  --public:#a8c7e8;
+  --criminal:#e7aaa6;
+  --neutral:#ddccb0;
+
+  --civil-deep:#527a49;
+  --public-deep:#496e98;
+  --criminal-deep:#9a514e;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--brown-dark);
+  font-family:Inter, ui-rounded, "SF Pro Rounded", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button,input,textarea{font:inherit}
+
+.app{
+  width:min(1460px,100%);
+  margin:0 auto;
+  padding:18px;
+}
+
+.header{
+  display:flex;
+  justify-content:flex-end;
+  align-items:flex-end;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.title h1{
+  margin:0;
+  font-size:clamp(26px,3vw,38px);
+  color:var(--brown);
+  letter-spacing:-.025em;
+}
+.title p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.btn, .month-select{
+  border:1px solid var(--line);
+  background:#fff9ef;
+  color:var(--brown);
+  border-radius:12px;
+  min-height:38px;
+  padding:8px 11px;
+  cursor:pointer;
+}
+.btn:hover,.month-select:hover{background:#f8eddc}
+.month-select{min-width:190px}
+
+.legend{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--muted);
+  font-size:12px;
+}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot.civil{background:var(--civil)}
+.dot.public{background:var(--public)}
+.dot.criminal{background:var(--criminal)}
+
+.calendar-card{
+  background:var(--panel);
+  border:1px solid rgba(155,123,97,.22);
+  border-radius:22px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.weekday-row{
+  display:grid;
+  grid-template-columns:56px repeat(7,minmax(0,1fr));
+  border-bottom:1px solid var(--line);
+  background:#f8efdf;
+}
+.weekday-row > div{
+  padding:10px 8px;
+  text-align:center;
+  font-size:12px;
+  font-weight:800;
+  color:var(--brown-soft);
+}
+.weekday-row .kw-head{
+  border-right:1px solid var(--line);
+}
+
+.week-row{
+  display:grid;
+  grid-template-columns:56px repeat(7,minmax(0,1fr));
+  grid-template-rows:auto auto;
+  border-bottom:1px solid var(--line);
+  position:relative;
+}
+.week-row:last-child{border-bottom:0}
+
+.kw{
+  grid-column:1;
+  grid-row:1 / span 2;
+  border-right:1px solid var(--line);
+  background:rgba(232,218,195,.24);
+  color:var(--brown-soft);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  align-items:center;
+  padding-top:12px;
+  gap:2px;
+}
+.kw strong{font-size:15px;color:var(--brown)}
+.kw span{font-size:10px}
+
+.week-theme-wrap{
+  grid-column:2 / 9;
+  grid-row:1;
+  padding:8px 9px 7px;
+  border-bottom:1px solid rgba(219,201,174,.65);
+  background:#fffaf0;
+}
+.week-theme{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:7px;
+  align-items:center;
+}
+.color-menu{
+  display:flex;
+  gap:5px;
+  align-items:center;
+}
+.color-btn{
+  width:20px;height:20px;
+  border:2px solid transparent;
+  border-radius:50%;
+  padding:0;
+  cursor:pointer;
+}
+.color-btn.active{border-color:var(--brown-dark)}
+.color-btn[data-color="civil"]{background:var(--civil)}
+.color-btn[data-color="public"]{background:var(--public)}
+.color-btn[data-color="criminal"]{background:var(--criminal)}
+.color-btn[data-color="neutral"]{background:var(--neutral)}
+
+.week-input{
+  width:100%;
+  border:0;
+  outline:0;
+  border-radius:10px;
+  padding:9px 11px;
+  color:#403328;
+  font-weight:800;
+}
+.week-input.civil{background:var(--civil)}
+.week-input.public{background:var(--public)}
+.week-input.criminal{background:var(--criminal)}
+.week-input.neutral{background:var(--neutral)}
+.week-input::placeholder{color:rgba(64,51,40,.55)}
+.week-clear{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:16px;
+  width:28px;height:28px;
+  border-radius:50%;
+}
+.week-clear:hover{background:rgba(0,0,0,.05)}
+
+.day{
+  grid-row:2;
+  min-height:150px;
+  border-right:1px solid var(--line);
+  background:var(--panel-2);
+  padding:8px;
+  overflow:hidden;
+}
+.day:last-child{border-right:0}
+.day.outside-month{background:#faf5eb;color:#aa9b8c}
+.day.outside-range{background:#f3ede4;color:#b8aa9b}
+.day.today{box-shadow:inset 0 0 0 2px #b99169}
+
+.day-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  margin-bottom:7px;
+}
+.date-num{
+  width:28px;height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-weight:800;
+  font-size:13px;
+}
+.today .date-num{
+  background:var(--brown);
+  color:white;
+}
+.add-todo{
+  border:1px solid var(--line);
+  background:#fff9ef;
+  color:var(--brown);
+  width:28px;height:28px;
+  border-radius:9px;
+  cursor:pointer;
+  font-weight:900;
+}
+.add-todo:hover{background:#f7ecd9}
+.outside-range .add-todo{display:none}
+
+.todo-list{
+  display:grid;
+  gap:6px;
+}
+.todo{
+  display:grid;
+  grid-template-columns:18px minmax(0,1fr) 20px;
+  align-items:start;
+  gap:5px;
+  padding:5px 6px;
+  background:white;
+  border:1px solid rgba(219,201,174,.75);
+  border-radius:9px;
+}
+.todo input[type="checkbox"]{
+  margin:3px 0 0;
+  accent-color:var(--brown);
+}
+.todo-text{
+  border:0;
+  outline:0;
+  background:transparent;
+  min-width:0;
+  width:100%;
+  color:var(--brown-dark);
+  font-size:12px;
+  line-height:1.25;
+  padding:2px 0;
+}
+.todo.done .todo-text{
+  text-decoration:line-through;
+  color:#a3978b;
+}
+.todo-delete{
+  border:0;
+  background:transparent;
+  color:#aa9889;
+  cursor:pointer;
+  padding:0;
+  font-size:15px;
+  line-height:1;
+}
+.todo-delete:hover{color:#735a46}
+
+.empty-note{
+  color:#b2a395;
+  font-size:11px;
+  font-style:italic;
+  padding:3px 1px;
+}
+
+.footer{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:12px;
+  color:var(--muted);
+  font-size:11px;
+}
+.backup{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.small-btn{
+  border:1px solid var(--line);
+  background:#fff8ec;
+  color:var(--brown);
+  border-radius:9px;
+  padding:6px 9px;
+  cursor:pointer;
+  font-size:11px;
+}
+
+@media(max-width:900px){
+  .app{padding:10px}
+  .calendar-card{
+    overflow-x:auto;
+    border-radius:17px;
+  }
+  .calendar-inner{
+    min-width:860px;
+  }
+}
+
+@media(max-width:520px){
+  .header{align-items:flex-start}
+  .controls{width:100%}
+  .month-select{flex:1}
+}
+
+.auth-overlay{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  background:rgba(244,236,217,.92);
+  backdrop-filter:blur(5px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.auth-overlay.hidden{display:none}
+.auth-card{
+  width:min(420px,100%);
+  background:var(--panel);
+  border:1px solid rgba(155,123,97,.28);
+  border-radius:22px;
+  box-shadow:var(--shadow);
+  padding:22px;
+}
+.auth-card h2{
+  margin:0 0 5px;
+  color:var(--brown);
+  font-size:22px;
+}
+.auth-card p{
+  margin:0 0 16px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+.auth-form{
+  display:grid;
+  gap:10px;
+}
+.auth-input{
+  width:100%;
+  border:1px solid var(--line);
+  background:#fffdf8;
+  color:var(--brown-dark);
+  border-radius:12px;
+  padding:11px 12px;
+  outline:none;
+}
+.auth-input:focus{border-color:var(--brown-soft)}
+.auth-submit{
+  border:1px solid var(--brown);
+  background:var(--brown);
+  color:white;
+  border-radius:12px;
+  padding:10px 12px;
+  cursor:pointer;
+  font-weight:800;
+}
+.auth-submit:disabled{opacity:.6;cursor:wait}
+.auth-error{
+  min-height:18px;
+  color:#9a514e;
+  font-size:12px;
+}
+.sync-wrap{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.sync-status{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+}
+.sync-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#b9aa98;
+}
+.sync-status.synced .sync-dot{background:#79a66e}
+.sync-status.saving .sync-dot{background:#d6a653}
+.sync-status.error .sync-dot{background:#bd6a64}
+.logout-btn{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  padding:0 2px;
+  cursor:pointer;
+  font-size:11px;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.logout-btn:hover{color:var(--brown)}
+
+</style>
+</head>
+<body>
+
+<div id="authOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <h2>Lernplan öffnen</h2>
+    <p>Einmal auf diesem Gerät anmelden. Danach bleibt dein Lernplan automatisch verbunden und synchronisiert sich zwischen deinen Geräten.</p>
+    <form id="authForm" class="auth-form">
+      <input id="authEmail" class="auth-input" type="email" autocomplete="email" placeholder="E-Mail-Adresse" required>
+      <input id="authPassword" class="auth-input" type="password" autocomplete="current-password" placeholder="Passwort" required>
+      <button id="authSubmit" class="auth-submit" type="submit">Anmelden</button>
+      <div id="authError" class="auth-error"></div>
+    </form>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="controls">
+      <button class="btn" id="prevMonth" type="button">‹</button>
+      <select id="monthSelect" class="month-select"></select>
+      <button class="btn" id="nextMonth" type="button">›</button>
+      <button class="btn" id="todayBtn" type="button">Heute</button>
+    </div>
+  </div>
+
+  <section class="calendar-card">
+    <div class="calendar-inner">
+      <div class="weekday-row">
+        <div class="kw-head">KW</div>
+        <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+      </div>
+      <div id="calendar"></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <div class="sync-wrap">
+      <span>Zeitraum: September 2026 – Dezember 2029</span>
+      <span id="syncStatus" class="sync-status"><span class="sync-dot"></span><span id="syncStatusText">Verbindung wird hergestellt …</span></span>
+      <button id="logoutBtn" class="logout-btn" type="button">Abmelden</button>
+    </div>
+    <div class="backup">
+      <button class="small-btn" id="exportBtn" type="button">Backup exportieren</button>
+      <button class="small-btn" id="importBtn" type="button">Backup importieren</button>
+      <input id="importFile" type="file" accept="application/json" hidden>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(() => {
+  const START = new Date(2026, 8, 1);   // 1 Sep 2026
+  const END   = new Date(2029, 11, 31); // 31 Dec 2029
+  const STORAGE_KEY = "notionLernplan.v1";
+  const SUPABASE_URL = "https://mbngvcpdebmlnfchwbis.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dxzxZt27DiIxvftdAU-QPw_X16a-41b";
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    }
+  );
+
+  let currentUser = null;
+  let cloudReady = false;
+  let cloudSaveTimer = null;
+  let cloudSaveInFlight = false;
+  let cloudSaveQueued = false;
+
+  const monthNames = [
+    "Januar","Februar","März","April","Mai","Juni",
+    "Juli","August","September","Oktober","November","Dezember"
+  ];
+
+  let state = loadState();
+  let view = initialView();
+
+  function emptyState(){
+    return {weeks:{}, days:{}};
+  }
+
+  function normalizeState(value){
+    if(!value || typeof value !== "object") return emptyState();
+    return {
+      weeks: value.weeks && typeof value.weeks === "object" ? value.weeks : {},
+      days: value.days && typeof value.days === "object" ? value.days : {}
+    };
+  }
+
+  function loadState(){
+    try{
+      return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+    }catch{
+      return emptyState();
+    }
+  }
+
+  function cacheStateLocally(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function saveState(){
+    cacheStateLocally();
+    if(cloudReady && currentUser) scheduleCloudSave();
+  }
+
+  function setSyncStatus(kind, text){
+    const box=document.getElementById("syncStatus");
+    const label=document.getElementById("syncStatusText");
+    if(!box || !label) return;
+    box.classList.remove("synced","saving","error");
+    if(kind) box.classList.add(kind);
+    label.textContent=text;
+  }
+
+  function scheduleCloudSave(){
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(saveStateToCloud, 450);
+  }
+
+  async function saveStateToCloud(){
+    if(!cloudReady || !currentUser) return;
+
+    if(cloudSaveInFlight){
+      cloudSaveQueued=true;
+      return;
+    }
+
+    cloudSaveInFlight=true;
+    cloudSaveQueued=false;
+    setSyncStatus("saving","Wird synchronisiert …");
+
+    const payload={
+      user_id: currentUser.id,
+      state: state,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabaseClient
+      .from("planner_state")
+      .upsert(payload, { onConflict: "user_id" });
+
+    cloudSaveInFlight=false;
+
+    if(error){
+      console.error("Supabase save error:", error);
+      setSyncStatus("error","Cloud nicht erreichbar · lokal gespeichert");
+    }else{
+      setSyncStatus("synced","Synchronisiert");
+    }
+
+    if(cloudSaveQueued){
+      cloudSaveQueued=false;
+      saveStateToCloud();
+    }
+  }
+
+  async function loadStateFromCloud(){
+    if(!currentUser) return;
+
+    setSyncStatus("saving","Lernplan wird geladen …");
+
+    const { data, error } = await supabaseClient
+      .from("planner_state")
+      .select("state, updated_at")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if(error){
+      console.error("Supabase load error:", error);
+      setSyncStatus("error","Cloud nicht erreichbar · lokale Version");
+      cloudReady=true;
+      render();
+      return;
+    }
+
+    if(data && data.state){
+      state=normalizeState(data.state);
+      cacheStateLocally();
+      cloudReady=true;
+      render();
+      setSyncStatus("synced","Synchronisiert");
+      return;
+    }
+
+    // First cloud login: preserve any existing local planner and upload it.
+    state=normalizeState(state);
+    cacheStateLocally();
+    cloudReady=true;
+    await saveStateToCloud();
+    render();
+  }
+
+  async function refreshFromCloud(){
+    if(!cloudReady || !currentUser || cloudSaveInFlight || cloudSaveTimer) return;
+
+    const { data, error } = await supabaseClient
+      .from("planner_state")
+      .select("state")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if(error || !data?.state) return;
+
+    const incoming=normalizeState(data.state);
+    if(JSON.stringify(incoming) !== JSON.stringify(state)){
+      state=incoming;
+      cacheStateLocally();
+      render();
+    }
+    setSyncStatus("synced","Synchronisiert");
+  }
+
+  function showLogin(message=""){
+    document.getElementById("authOverlay").classList.remove("hidden");
+    document.getElementById("authError").textContent=message;
+    setSyncStatus("", "Nicht angemeldet");
+  }
+
+  function hideLogin(){
+    document.getElementById("authOverlay").classList.add("hidden");
+    document.getElementById("authError").textContent="";
+  }
+
+  async function onAuthenticated(user){
+    currentUser=user;
+    hideLogin();
+    cloudReady=false;
+    await loadStateFromCloud();
+  }
+
+  async function bootstrapAuth(){
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if(error){
+      console.error("Session error:", error);
+      showLogin("Die gespeicherte Anmeldung konnte nicht geladen werden.");
+      return;
+    }
+
+    if(data.session?.user){
+      await onAuthenticated(data.session.user);
+    }else{
+      showLogin();
+    }
+  }
+
+  function pad(n){ return String(n).padStart(2,"0"); }
+
+  function dateKey(d){
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function cloneDate(d){
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  function addDays(d,n){
+    const x=cloneDate(d);
+    x.setDate(x.getDate()+n);
+    return x;
+  }
+
+  function inRange(d){
+    const t=cloneDate(d).getTime();
+    return t >= START.getTime() && t <= END.getTime();
+  }
+
+  // ISO week: returns {year, week}
+  function isoWeekInfo(date){
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return {year:d.getUTCFullYear(), week};
+  }
+
+  function weekKey(d){
+    const info=isoWeekInfo(d);
+    return `${info.year}-W${pad(info.week)}`;
+  }
+
+  function mondayOfWeek(d){
+    const x=cloneDate(d);
+    const day=x.getDay() || 7;
+    x.setDate(x.getDate()-(day-1));
+    return x;
+  }
+
+  function initialView(){
+    const now=new Date();
+    if(now >= START && now <= END){
+      return {year:now.getFullYear(), month:now.getMonth()};
+    }
+    return {year:2026, month:8};
+  }
+
+  function monthIndex(year,month){
+    return year*12+month;
+  }
+  const minMonth=monthIndex(2026,8);
+  const maxMonth=monthIndex(2029,11);
+
+  function clampView(){
+    let idx=monthIndex(view.year,view.month);
+    idx=Math.max(minMonth,Math.min(maxMonth,idx));
+    view.year=Math.floor(idx/12);
+    view.month=idx%12;
+  }
+
+  function fillMonthSelect(){
+    const sel=document.getElementById("monthSelect");
+    sel.innerHTML="";
+    for(let y=2026;y<=2029;y++){
+      const startM=y===2026?8:0;
+      const endM=y===2029?11:11;
+      for(let m=startM;m<=endM;m++){
+        const opt=document.createElement("option");
+        opt.value=`${y}-${m}`;
+        opt.textContent=`${monthNames[m]} ${y}`;
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  function syncControls(){
+    document.getElementById("monthSelect").value=`${view.year}-${view.month}`;
+    const idx=monthIndex(view.year,view.month);
+    document.getElementById("prevMonth").disabled=idx<=minMonth;
+    document.getElementById("nextMonth").disabled=idx>=maxMonth;
+  }
+
+  function render(){
+    clampView();
+    syncControls();
+
+    const calendar=document.getElementById("calendar");
+    calendar.innerHTML="";
+
+    const first=new Date(view.year,view.month,1);
+    const firstMonday=mondayOfWeek(first);
+
+    const last=new Date(view.year,view.month+1,0);
+    let lastSunday=addDays(mondayOfWeek(last),6);
+
+    let cursor=firstMonday;
+    while(cursor <= lastSunday){
+      calendar.appendChild(renderWeek(cursor));
+      cursor=addDays(cursor,7);
+    }
+  }
+
+  function renderWeek(monday){
+    const wk=weekKey(monday);
+    const info=isoWeekInfo(monday);
+    const row=document.createElement("div");
+    row.className="week-row";
+
+    const kw=document.createElement("div");
+    kw.className="kw";
+    kw.innerHTML=`<strong>${info.week}</strong><span>${info.year}</span>`;
+    row.appendChild(kw);
+
+    const themeWrap=document.createElement("div");
+    themeWrap.className="week-theme-wrap";
+
+    const theme=state.weeks[wk] || {text:"", color:"neutral"};
+    const themeBar=document.createElement("div");
+    themeBar.className="week-theme";
+
+    const colorMenu=document.createElement("div");
+    colorMenu.className="color-menu";
+    ["civil","public","criminal","neutral"].forEach(color=>{
+      const b=document.createElement("button");
+      b.type="button";
+      b.className="color-btn"+(theme.color===color?" active":"");
+      b.dataset.color=color;
+      b.title = color==="civil" ? "Zivilrecht" :
+                color==="public" ? "Öffentliches Recht" :
+                color==="criminal" ? "Strafrecht" : "Neutral";
+      b.addEventListener("click",()=>{
+        state.weeks[wk] = state.weeks[wk] || {text:"",color:"neutral"};
+        state.weeks[wk].color=color;
+        saveState();
+        render();
+      });
+      colorMenu.appendChild(b);
+    });
+
+    const inp=document.createElement("input");
+    inp.className=`week-input ${theme.color || "neutral"}`;
+    inp.placeholder="Wochenziel / Rechtsgebiet, z. B. Strafrecht AT";
+    inp.value=theme.text || "";
+    inp.addEventListener("input",()=>{
+      state.weeks[wk] = state.weeks[wk] || {text:"", color:theme.color || "neutral"};
+      state.weeks[wk].text=inp.value;
+      saveState();
+    });
+
+    const clear=document.createElement("button");
+    clear.className="week-clear";
+    clear.type="button";
+    clear.title="Wochenziel löschen";
+    clear.textContent="×";
+    clear.addEventListener("click",()=>{
+      delete state.weeks[wk];
+      saveState();
+      render();
+    });
+
+    themeBar.append(colorMenu,inp,clear);
+    themeWrap.appendChild(themeBar);
+    row.appendChild(themeWrap);
+
+    for(let i=0;i<7;i++){
+      const d=addDays(monday,i);
+      row.appendChild(renderDay(d,i));
+    }
+
+    return row;
+  }
+
+  function renderDay(date, dayIndex){
+    const key=dateKey(date);
+    const day=document.createElement("div");
+    day.className="day";
+    day.style.gridColumn=String(dayIndex+2);
+
+    if(date.getMonth() !== view.month) day.classList.add("outside-month");
+    if(!inRange(date)) day.classList.add("outside-range");
+
+    const today=new Date();
+    if(dateKey(today)===key) day.classList.add("today");
+
+    const head=document.createElement("div");
+    head.className="day-head";
+
+    const num=document.createElement("div");
+    num.className="date-num";
+    num.textContent=date.getDate();
+
+    const add=document.createElement("button");
+    add.className="add-todo";
+    add.type="button";
+    add.textContent="+";
+    add.title="Thema / To-do hinzufügen";
+    add.addEventListener("click",()=>{
+      if(!inRange(date)) return;
+      state.days[key]=state.days[key] || [];
+      state.days[key].push({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        text:"",
+        done:false
+      });
+      saveState();
+      render();
+      requestAnimationFrame(()=>{
+        const input=document.querySelector(`[data-day="${key}"] .todo:last-child .todo-text`);
+        input?.focus();
+      });
+    });
+
+    head.append(num,add);
+    day.appendChild(head);
+
+    const list=document.createElement("div");
+    list.className="todo-list";
+    list.dataset.day=key;
+
+    const todos=state.days[key] || [];
+    if(!todos.length && inRange(date)){
+      const empty=document.createElement("div");
+      empty.className="empty-note";
+      empty.textContent="Noch offen";
+      list.appendChild(empty);
+    }
+
+    todos.forEach(todo=>{
+      const item=document.createElement("div");
+      item.className="todo"+(todo.done?" done":"");
+
+      const cb=document.createElement("input");
+      cb.type="checkbox";
+      cb.checked=!!todo.done;
+      cb.addEventListener("change",()=>{
+        todo.done=cb.checked;
+        saveState();
+        item.classList.toggle("done",todo.done);
+      });
+
+      const input=document.createElement("input");
+      input.className="todo-text";
+      input.type="text";
+      input.placeholder="Unterthema …";
+      input.value=todo.text || "";
+      input.addEventListener("input",()=>{
+        todo.text=input.value;
+        saveState();
+      });
+
+      const del=document.createElement("button");
+      del.className="todo-delete";
+      del.type="button";
+      del.textContent="×";
+      del.title="Löschen";
+      del.addEventListener("click",()=>{
+        state.days[key]=(state.days[key]||[]).filter(x=>x.id!==todo.id);
+        if(state.days[key].length===0) delete state.days[key];
+        saveState();
+        render();
+      });
+
+      item.append(cb,input,del);
+      list.appendChild(item);
+    });
+
+    day.appendChild(list);
+    return day;
+  }
+
+  document.getElementById("prevMonth").addEventListener("click",()=>{
+    const idx=monthIndex(view.year,view.month)-1;
+    view={year:Math.floor(idx/12),month:idx%12};
+    render();
+  });
+
+  document.getElementById("nextMonth").addEventListener("click",()=>{
+    const idx=monthIndex(view.year,view.month)+1;
+    view={year:Math.floor(idx/12),month:idx%12};
+    render();
+  });
+
+  document.getElementById("monthSelect").addEventListener("change",e=>{
+    const [y,m]=e.target.value.split("-").map(Number);
+    view={year:y,month:m};
+    render();
+  });
+
+  document.getElementById("todayBtn").addEventListener("click",()=>{
+    const now=new Date();
+    if(now >= START && now <= END){
+      view={year:now.getFullYear(),month:now.getMonth()};
+    }else{
+      view={year:2026,month:8};
+    }
+    render();
+  });
+
+  document.getElementById("exportBtn").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=`lernplan-backup-${dateKey(new Date())}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("importBtn").addEventListener("click",()=>{
+    document.getElementById("importFile").click();
+  });
+
+  document.getElementById("importFile").addEventListener("change",async e=>{
+    const file=e.target.files?.[0];
+    if(!file) return;
+    try{
+      const imported=JSON.parse(await file.text());
+      if(!imported || typeof imported!=="object") throw new Error();
+      state={
+        weeks: imported.weeks || {},
+        days: imported.days || {}
+      };
+      saveState();
+      render();
+      alert("Backup wurde importiert.");
+    }catch{
+      alert("Die Datei konnte nicht als Lernplan-Backup gelesen werden.");
+    }
+    e.target.value="";
+  });
+
+  document.getElementById("authForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+
+    const email=document.getElementById("authEmail").value.trim();
+    const password=document.getElementById("authPassword").value;
+    const submit=document.getElementById("authSubmit");
+    const errorBox=document.getElementById("authError");
+
+    submit.disabled=true;
+    submit.textContent="Wird angemeldet …";
+    errorBox.textContent="";
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    submit.disabled=false;
+    submit.textContent="Anmelden";
+
+    if(error){
+      console.error("Login error:", error);
+      errorBox.textContent="Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.";
+      return;
+    }
+
+    document.getElementById("authPassword").value="";
+    await onAuthenticated(data.user);
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=null;
+
+    if(cloudReady && currentUser){
+      await saveStateToCloud();
+    }
+
+    await supabaseClient.auth.signOut();
+    currentUser=null;
+    cloudReady=false;
+    showLogin();
+  });
+
+  // If the plan was changed on another device, refresh when this tab becomes active again.
+  window.addEventListener("focus", ()=>{
+    if(currentUser && cloudReady) refreshFromCloud();
+  });
+
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible" && currentUser && cloudReady){
+      refreshFromCloud();
+    }
+  });
+
+  fillMonthSelect();
+  render();
+  bootstrapAuth();
+})();
+</script>
+</body>
+</html>
